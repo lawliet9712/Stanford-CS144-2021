@@ -33,7 +33,6 @@ size_t ByteStream::write(const string &data) {
     }
     _begin += write_size;
     _total_written += write_size;
-    std::cerr << "write Size " << write_size << " result " << data << std::endl;
     return write_size;
 }
 
@@ -67,7 +66,6 @@ std::string ByteStream::read(const size_t len) {
     }
     _total_read += read_size;
     _end += read_size;
-    std::cerr << "Read Size " << read_size << " result " << read_result << std::endl;
     return read_result;
 }
 
