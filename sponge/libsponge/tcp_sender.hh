@@ -23,6 +23,9 @@ class TCPSender {
     //! outbound queue of segments that the TCPSender wants sent
     std::queue<TCPSegment> _segments_out{};
 
+    //! cache outbound queue of segments that the TCPSender wants sent
+    std::queue<TCPSegment> _segments_cache{};
+
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
 
@@ -31,6 +34,20 @@ class TCPSender {
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    //! the windows size
+    //! What should my TCPSender assume as the receiver’s window size before I’ve gotten an ACK from the receiver?
+    //! One byte.
+    uint16_t _windows_size{1};
+
+    // bytes in flight
+    uint64_t _bytes_in_flight{0};
+
+    // cal total time
+    size_t _time{0};
+
+    // retx tims;
+    uint8_t _retx_times{0};
 
   public:
     //! Initialize a TCPSender
@@ -87,6 +104,10 @@ class TCPSender {
     //! \brief relative seqno for the next byte to be sent
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
+
+    // ! \brief cache segments then we can retransmissions
+    void _cache_segment(TCPSegment& seg);
+
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH
