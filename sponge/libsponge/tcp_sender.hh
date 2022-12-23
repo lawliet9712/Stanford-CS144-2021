@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <queue>
+#include <map>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -24,7 +25,10 @@ class TCPSender {
     std::queue<TCPSegment> _segments_out{};
 
     //! cache outbound queue of segments that the TCPSender wants sent
-    std::queue<TCPSegment> _segments_cache{};
+    std::map<uint64_t, TCPSegment> _segments_cache{};
+
+    //! retransmission timer for the connection
+    unsigned int _default_initial_retransmission_timeout;
 
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
@@ -39,6 +43,7 @@ class TCPSender {
     //! What should my TCPSender assume as the receiver’s window size before I’ve gotten an ACK from the receiver?
     //! One byte.
     uint16_t _windows_size{1};
+    uint16_t _peer_windows_size{1};
 
     // bytes in flight
     uint64_t _bytes_in_flight{0};
@@ -106,7 +111,7 @@ class TCPSender {
     //!@}
 
     // ! \brief cache segments then we can retransmissions
-    void _cache_segment(TCPSegment& seg);
+    void _cache_segment(uint64_t ackno, TCPSegment& seg);
 
 };
 
