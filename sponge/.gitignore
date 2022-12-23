@@ -1,3 +1,5 @@
 /build
 /.ccls-cache
 .vscode
+cmake-build-debug
+.idea

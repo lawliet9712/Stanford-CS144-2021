@@ -28,13 +28,13 @@ class TCPSender {
     std::map<uint64_t, TCPSegment> _segments_cache{};
 
     //! retransmission timer for the connection
-    unsigned int _default_initial_retransmission_timeout;
-
-    //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
+
+    //! retransmission timer for the connection
+    unsigned int _default_initial_retransmission_timeout{0};
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
