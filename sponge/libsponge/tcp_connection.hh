@@ -17,12 +17,15 @@ class TCPConnection {
     std::queue<TCPSegment> _segments_out{};
 
     // active 
-    bool _active{false};
+    bool _active{true};
 
     //! Should the TCPConnection stay active (and keep ACKing)
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
+
+    // time since last segment received
+    size_t _time{0};
 
   public:
     //! \name "Input" interface for the writer
@@ -30,6 +33,11 @@ class TCPConnection {
 
     //! \brief Initiate a connection by sending a SYN segment
     void connect();
+
+    void unclean_shutdown();
+    void clean_shutdown();
+
+    void _push_segment(bool rst = false);
 
     //! \brief Write data to the outbound byte stream, and send it over TCP if possible
     //! \returns the number of bytes from `data` that were actually written.
