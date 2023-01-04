@@ -57,25 +57,36 @@ size_t TCPConnection::write(const string &data) {
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) {
+    if (!_active) {
+        return;
+    }
+
     _time += ms_since_last_tick;
      _sender.tick(ms_since_last_tick);
-     // try retx
-     if (_sender.bytes_in_flight() != 0) {
+     // buffer still have something
+     if (!_sender.stream_in().buffer_empty()) {
          _sender.fill_window();
-         if (!_sender.segments_out().empty()) {
+         while (!_sender.segments_out().empty()) {
              _push_segment();
          }
      }
 
      // abort the connection, and send a reset segment to the peer
-     if (_sender.consecutive_retransmissions() >= TCPConfig::MAX_RETX_ATTEMPTS) {
+     if (_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS) {
          unclean_shutdown();
 
          _sender.fill_window();
          if (_sender.segments_out().empty()) {
              _sender.send_empty_segment();
          }
-         _push_segment();
+         _push_segment(true);
+     }
+     //  try retx
+     else if (_sender.bytes_in_flight() != 0) {
+         _sender.fill_window();
+         if (!_sender.segments_out().empty()) {
+             _push_segment();
+         }
      }
      // end the connection cleanly if necessary
      clean_shutdown();
@@ -85,6 +96,7 @@ void TCPConnection::end_input_stream() {
     _sender.stream_in().end_input();
     _sender.fill_window();
     _push_segment();
+    clean_shutdown();
 }
 
 void TCPConnection::connect() {
@@ -118,6 +130,9 @@ void TCPConnection::clean_shutdown() {
 }
 
 void TCPConnection::_push_segment(bool rst) {
+    if (_sender.segments_out().empty()) {
+        return;
+    }
     TCPSegment& seg = _sender.segments_out().front();
     if (_receiver.ackno().has_value()) {
         seg.header().ack = true;

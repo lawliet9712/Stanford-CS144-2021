@@ -29,15 +29,19 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     // 3. push payload
     if (ackno().has_value() && !_reassembler.stream_out().input_ended()) {
         // relative seqno to stream index
-        int64_t stream_index = unwrap(seg.header().seqno, _isn, _checkpoint);
+        uint64_t stream_index = unwrap(seg.header().seqno, _isn, _checkpoint);
+        // stream index should in the window
+        uint64_t abs_ackno = unwrap(ackno().value(), _isn, _checkpoint);
+        if (stream_index + seg.length_in_sequence_space() <= abs_ackno || stream_index >= abs_ackno + window_size()) {
+            return;
+        }
+
         if (!seg.header().syn) {
             stream_index -= 1; // ignore syn flag;
         }
-        size_t begin_index = stream_index;
-        if (stream_index >= 0 && begin_index < _capacity) {
-            _reassembler.push_substring(seg.payload().copy(), stream_index, eof);
-            _checkpoint = _reassembler.stream_out().bytes_written();
-        }
+
+        _reassembler.push_substring(seg.payload().copy(), stream_index, eof);
+        _checkpoint = _reassembler.stream_out().bytes_written();
     }
 }
 
