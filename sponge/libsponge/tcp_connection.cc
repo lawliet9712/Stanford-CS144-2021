@@ -122,7 +122,7 @@ void TCPConnection::clean_shutdown() {
         // 3. The outbound stream has been fully acknowledged by the remote peer.
         if (_sender.stream_in().eof() && _sender.bytes_in_flight() == 0) {
             // 4. lingering after both streams end
-            if (_time >= 10 * TCPConfig::TIMEOUT_DFLT || !_linger_after_streams_finish) {
+            if (_time >= 10 * _cfg.rt_timeout || !_linger_after_streams_finish) {
                 _active = false;
             }
         }
