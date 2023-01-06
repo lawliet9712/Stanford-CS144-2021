@@ -36,8 +36,9 @@ class TCPConnection {
 
     void unclean_shutdown();
     void clean_shutdown();
-
-    void _push_segment(bool rst = false);
+    void flush_send();
+    void _send_rst_segment();
+    void _setup_segment(TCPSegment& seg);
 
     //! \brief Write data to the outbound byte stream, and send it over TCP if possible
     //! \returns the number of bytes from `data` that were actually written.

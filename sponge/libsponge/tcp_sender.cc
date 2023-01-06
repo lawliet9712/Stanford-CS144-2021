@@ -46,17 +46,23 @@ void TCPSender::fill_window() {
     // SYN_ACKED
     if (not stream_in().eof() && next_seqno_absolute() > bytes_in_flight()) {
         // if windows size equal zero , the fill window method should act like the window size is one
-        uint16_t max_windows_size = TCPConfig::MAX_PAYLOAD_SIZE;
-        string read_stream = _stream.read(min(_windows_size, max_windows_size));
+        size_t max_seg_size = TCPConfig::MAX_PAYLOAD_SIZE;
+        size_t remaining_wsz = _peer_windows_size ? _peer_windows_size : 1;
+        size_t flight_size = bytes_in_flight();
+        if (remaining_wsz < flight_size) {
+            return;
+        }
+        remaining_wsz -= flight_size;
+        string read_stream = _stream.read(min(remaining_wsz, max_seg_size));
         
         while (!read_stream.empty()) {
             TCPSegment seg;
             seg.header().seqno = next_seqno();
             seg.payload() = Buffer(std::move(read_stream));
-            _windows_size -= seg.length_in_sequence_space();
-            if (stream_in().eof() && next_seqno_absolute() < stream_in().bytes_written() + 2 && _windows_size >= 1) {
+            remaining_wsz -= seg.length_in_sequence_space();
+            if (stream_in().eof() && next_seqno_absolute() < stream_in().bytes_written() + 2 && remaining_wsz >= 1) {
                 seg.header().fin = true;
-                _windows_size -= 1;
+                remaining_wsz -= 1;
             }
 
             _next_seqno += seg.length_in_sequence_space();
@@ -65,14 +71,16 @@ void TCPSender::fill_window() {
 
             // cache the seg
             _cache_segment(next_seqno_absolute(), seg);
-            read_stream = _stream.read(min(_windows_size, max_windows_size));
+            read_stream = _stream.read(min(remaining_wsz, max_seg_size));
         }
     }
 
     // SYN_ACKED
     if (stream_in().eof() && next_seqno_absolute() < stream_in().bytes_written() + 2) {
         // stream has reached EOF, but FIN flag hasn't been sent yet. so send the fin
-        if (_windows_size == 0) {
+        size_t remaining_wsz = _peer_windows_size ? _peer_windows_size : 1;
+        size_t flight_size = bytes_in_flight();
+        if (remaining_wsz <= flight_size) {
             return;
         }
 
@@ -117,11 +125,13 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 
     // valid ackno
     if (!remove_acknos.empty()) {
+        //cerr << "ack received window_size=" << window_size << endl;
         _windows_size = max(window_size, uint16_t(1));
         _bytes_in_flight = left_need_ack_bytes;
         _time = 0;
         _retx_times = 0;
         _initial_retransmission_timeout = _default_initial_retransmission_timeout;
+        fill_window();
     }
 }
 
