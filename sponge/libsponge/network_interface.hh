@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <queue>
+#include <map>
 
 //! \brief A "network interface" that connects IP (the internet layer, or network layer)
 //! with Ethernet (the network access layer, or link layer).
@@ -29,6 +30,34 @@
 //! the network interface passes it up the stack. If it's an ARP
 //! request or reply, the network interface processes the frame
 //! and learns or replies as necessary.
+struct LearnAddress {
+  // ms
+  const static uint32_t LEARN_VAILD_TIMEOUT = 30000;
+  const static uint32_t QUERY_VAILD_TIMEOUT = 5000;
+
+  bool is_valid {false};
+  uint32_t learn_pass_time{0};
+  uint32_t query_pass_time{QUERY_VAILD_TIMEOUT}; // time after arp query
+  EthernetAddress learn_address{};
+  std::queue<InternetDatagram> datagrams{};
+
+  bool learn_timeout() { return learn_pass_time >= LEARN_VAILD_TIMEOUT; }
+  bool can_query() { return query_pass_time >= QUERY_VAILD_TIMEOUT; }
+
+  void reset() { 
+    is_valid = false;
+    learn_pass_time = 0;
+    query_pass_time = QUERY_VAILD_TIMEOUT;
+  }
+
+  void tick(size_t ms_since_last_tick) {
+      if (!is_valid)
+        query_pass_time += ms_since_last_tick; 
+      else 
+        learn_pass_time += ms_since_last_tick; 
+  }
+};
+
 class NetworkInterface {
   private:
     //! Ethernet (known as hardware, network-access-layer, or link-layer) address of the interface
@@ -39,6 +68,12 @@ class NetworkInterface {
 
     //! outbound queue of Ethernet frames that the NetworkInterface wants sent
     std::queue<EthernetFrame> _frames_out{};
+
+    //! unknown dst address frame
+    std::queue<EthernetFrame> _frames_unlearn_dst{};
+
+    //! learn address map
+    std::map<uint32_t, LearnAddress> _learn_address{};
 
   public:
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses
@@ -62,6 +97,9 @@ class NetworkInterface {
 
     //! \brief Called periodically when time elapses
     void tick(const size_t ms_since_last_tick);
+
+private:
+    void _send_datagram(const InternetDatagram &dgram, EthernetAddress ethernet_address);
 };
 
 #endif  // SPONGE_LIBSPONGE_NETWORK_INTERFACE_HH
