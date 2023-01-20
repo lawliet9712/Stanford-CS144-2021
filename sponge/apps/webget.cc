@@ -69,7 +69,7 @@ void get_URL(const string &host, const string &path) {
 void get_URL(const string &host, const string &path) {
     // Your code here.
     // 1. init socket
-    CS144TCPSocket socket;
+    FullStackSocket socket;
     
     // 2. connect to host
     socket.connect(Address(host, "http"));
