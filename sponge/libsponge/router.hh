@@ -21,7 +21,7 @@ struct RouteRule {
     bool match_route(uint32_t addr) {
         uint32_t self_prefix_mask = route_prefix >> (32 - prefix_length);
         uint32_t target_prefix_mask = addr >> (32 - prefix_length);
-        return (self_prefix_mask ^ target_prefix_mask) == 0 || prefix_length == 0; // no need to compare prefix;
+        return self_prefix_mask == target_prefix_mask || prefix_length == 0; // no need to compare prefix;
     }
 };
 
