@@ -19,21 +19,15 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
             _isn = seg.header().seqno;
         }
     }
-
-    // 2. process fin flag
-    bool eof = false;
-    if (seg.header().fin) {
-        eof = true;
-    }
     
-    // 3. push payload
+    // 2. push payload
     if (ackno().has_value() && !_reassembler.stream_out().input_ended()) {
         // relative seqno to stream index
         size_t stream_index = unwrap(seg.header().seqno, _isn, _checkpoint);
         if (!seg.header().syn) {
             stream_index -= 1; // ignore syn flag;
         }
-        _reassembler.push_substring(seg.payload().copy(), stream_index, eof);
+        _reassembler.push_substring(seg.payload().copy(), stream_index, seg.header().fin);
         _checkpoint = _reassembler.stream_out().bytes_written();
     }
 }
