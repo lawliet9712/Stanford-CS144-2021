@@ -2,7 +2,7 @@
 
 从零开始使用 c++ 实现 TCP
 
-cs144 website : https://vixbob.github.io/cs144-web-page/
+cs144 website : https://cs144.github.io/
 
 create at 2022/12/12 14:46
 
